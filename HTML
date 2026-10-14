@@ -1,74 +1,798 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zombie Uprising: Changing Worlds</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Picture Vault</title>
+
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; overflow: hidden; background: #111; color: white; font-family: Arial, sans-serif; }
-  canvas { display: block; }
-  #hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 1px 2px 3px #000; }
-  .panel { background: rgba(0,0,0,.62); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; padding: 10px 13px; }
-  #topLeft { position:absolute; top:14px; left:14px; min-width:190px; }
-  #topRight { position:absolute; top:14px; right:14px; text-align:right; }
-  #bottomLeft { position:absolute; bottom:16px; left:16px; }
-  #bottomRight { position:absolute; bottom:16px; right:16px; text-align:right; }
-  #crosshair { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:26px; font-weight:bold; color:#fff; }
-  #hitmarker { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#ff5757; font-size:25px; font-weight:bold; opacity:0; }
-  #message { position:absolute; top:24%; left:50%; transform:translateX(-50%); font-size:24px; font-weight:bold; text-align:center; white-space:pre-line; }
-  #healthOuter { width:180px; height:13px; background:#451d1d; border:1px solid #ddd; margin-top:5px; }
-  #healthBar { height:100%; width:100%; background:#35d45a; }
-  #bossOuter { width:280px; height:14px; background:#333; border:1px solid #fff; margin-top:5px; display:none; }
-  #bossBar { height:100%; width:100%; background:#c12d39; }
-  #overlay { position:fixed; inset:0; background:radial-gradient(ellipse at center,rgba(26,47,39,.74),rgba(2,5,8,.96)), repeating-linear-gradient(135deg,transparent 0 18px,rgba(255,255,255,.025) 18px 19px); display:flex; align-items:center; justify-content:center; z-index:10; backdrop-filter:blur(5px); }
-  #box { width:min(600px,92vw); max-height:90vh; overflow:auto; padding:clamp(22px,5vw,42px); background:linear-gradient(145deg,rgba(21,34,38,.97),rgba(7,13,17,.98)); border:1px solid rgba(151,255,181,.6); border-radius:18px; text-align:center; box-shadow:0 0 0 1px rgba(255,255,255,.05),0 20px 80px #000,0 0 45px rgba(64,255,133,.12); }
-  #box h1 { margin:0 0 12px; color:#b7ffb7; font-size:clamp(30px,6vw,48px); letter-spacing:2px; line-height:1.05; text-shadow:0 0 24px rgba(105,255,140,.3); }
-  #overlayText { color:#e5f1e8; font-size:17px; }
-  #overlayExtra { margin:20px auto; max-width:440px; }
-  #overlayButtons { display:flex; flex-direction:column; gap:8px; width:min(280px,100%); margin:22px auto 0; }
-  button { cursor:pointer; background:linear-gradient(180deg,#49a95c,#26713b); color:white; border:1px solid rgba(200,255,210,.25); border-radius:9px; padding:13px 18px; margin:0; font-size:15px; font-weight:800; letter-spacing:1px; transition:transform .15s,filter .15s,background .15s; }
-  button:hover { background:linear-gradient(180deg,#66ce79,#348d4b); filter:brightness(1.08); transform:translateY(-1px); }
-  #helpBtn { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.22); }
-  #helpBtn:hover { background:rgba(255,255,255,.15); }
-  .shopRow { display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid #52605b; padding:8px 0; text-align:left; }
-  .small { font-size:13px; color:#d0d0d0; line-height:1.5; }
-  #terrainName { color:#ffe58a; font-weight:bold; }
-  body.damageFlash::after { content:''; position:fixed; inset:0; pointer-events:none; background:rgba(255,25,25,.24); box-shadow:inset 0 0 90px rgba(255,0,0,.75); z-index:8; }
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: #10131c;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    padding: 22px;
+    background: #191e2c;
+    border-bottom: 1px solid #30374b;
+}
+
+header h1 { color: #a99aff; margin: 0 0 8px; }
+header p { color: #b7bfd2; margin: 0; }
+
+.container {
+    max-width: 1100px;
+    padding: 22px;
+    margin: auto;
+}
+
+.panel, .upload-box {
+    background: #1b2131;
+    border: 1px solid #353d53;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.upload-box {
+    text-align: center;
+    border: 2px dashed #7968ef;
+}
+
+.upload-box.dragging { background: #302950; }
+.upload-icon { font-size: 42px; }
+
+button, .upload-button {
+    display: inline-block;
+    border: 0;
+    border-radius: 9px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #7968ef;
+    color: white;
+}
+
+button:hover, .upload-button:hover { filter: brightness(1.15); }
+button:disabled { opacity: .55; cursor: wait; }
+input[type="file"] { display: none; }
+
+input[type="search"],
+input[type="password"],
+input[type="text"] {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #353d53;
+    background: #121724;
+    border-radius: 9px;
+    color: white;
+    font-size: 16px;
+    margin: 7px 0 14px;
+}
+
+input:focus { outline: 2px solid #7968ef; }
+
+.muted, #count { color: #aab3ca; }
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 22px 0 16px;
+}
+
+.toolbar h2 { margin: 0; }
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+}
+
+.photo {
+    overflow: hidden;
+    background: #1b2131;
+    border: 1px solid #30374b;
+    border-radius: 14px;
+}
+
+.photo img {
+    display: block;
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    background: #090b11;
+    cursor: pointer;
+}
+
+.photo-info { padding: 12px; }
+.photo-name { overflow-wrap: anywhere; font-size: 14px; }
+.photo-date { color: #9da8bf; font-size: 12px; margin-bottom: 12px; }
+
+.photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.photo-actions button {
+    flex: 1;
+    min-width: 65px;
+    padding: 9px 5px;
+    font-size: 12px;
+}
+
+.secondary { background: #293750; }
+.danger { background: #49252e; color: #ffc0c8; }
+.secret { background: #633eb0; }
+.green { background: #24654d; }
+
+.empty {
+    text-align: center;
+    padding: 45px 10px;
+    color: #aab3ca;
+    grid-column: 1 / -1;
+}
+
+.empty div { font-size: 45px; }
+
+.status {
+    min-height: 18px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #b8f5cf;
+    overflow-wrap: anywhere;
+}
+
+.error { color: #ffadb8; }
+
+#vaultPanel { display: none; }
+#vaultPanel.open { display: block; }
+
+.vault-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.lock-screen {
+    max-width: 420px;
+    margin: 20px auto;
+    padding: 25px;
+    border-radius: 14px;
+    text-align: center;
+    background: #151a28;
+}
+
+.lock-icon { font-size: 54px; }
+
+#viewer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: rgba(0,0,0,.95);
+    align-items: center;
+    justify-content: center;
+    padding: 65px 20px 20px;
+}
+
+#viewer.open { display: flex; }
+
+#viewer img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+#closeViewer {
+    position: absolute;
+    top: 15px;
+    right: 18px;
+    background: #292d3b;
+    font-size: 22px;
+}
+
+footer {
+    text-align: center;
+    color: #7e899f;
+    padding: 28px 15px;
+    font-size: 12px;
+}
+
+@media (max-width: 500px) {
+    .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .photo img { height: 140px; }
+    .container { padding: 14px; }
+}
 </style>
 </head>
+
 <body>
-<div id="hud">
-  <div id="topLeft" class="panel">
-    <div><b>WAVE:</b> <span id="wave">0</span></div>
-    <div><b>WORLD:</b> <span id="terrainName">CITY STREET</span></div>
-    <div><b>ZOMBIES:</b> <span id="zombies">0</span></div>
-    <div style="margin-top:7px"><b>HEALTH</b> <span id="healthText">100</span>/100</div>
-    <div id="healthOuter"><div id="healthBar"></div></div>
-  </div>
-  <div id="topRight" class="panel">
-    <div><b>CASH:</b> $<span id="cash">100</span></div>
-    <div><b>KILLS:</b> <span id="kills">0</span></div>
-    <div><b>WEAPON:</b> <span id="weapon">Pistol</span></div>
-    <div><b>AMMO:</b> <span id="ammo">12 / 60</span></div>
-    <div id="bossOuter"><div id="bossBar"></div></div>
-  </div>
-  <div id="bottomLeft" class="panel small">WASD move · Mouse aim · Click shoot<br>Shift sprint · R reload · E open chest<br>B weapon shop · Esc pause</div>
-  <div id="bottomRight" class="panel"><b id="status">Ready</b></div>
-  <div id="crosshair">+</div><div id="hitmarker">×</div>
-  <div id="message"></div>
-</div>
-<div id="overlay">
-  <div id="box">
-    <div id="menuEyebrow" style="color:#ff7777;font-size:12px;font-weight:800;letter-spacing:5px;margin-bottom:12px">SURVIVE THE OUTBREAK</div>
-    <h1 id="overlayTitle">ZOMBIE UPRISING</h1>
-    <p id="overlayText">Survive the waves. Every wave changes the world!</p>
-    <div id="overlayExtra" class="small">
-      Move with WASD, aim with your mouse, and click or press Space to shoot.<br>
-      Clear each wave to unlock a supply chest. Bosses appear every 5 waves.
+<header>
+    <h1>📸 Picture Vault</h1>
+    <p>Your pictures. Your private vault. Your code.</p>
+</header>
+
+<main class="container">
+
+    <section class="upload-box" id="dropZone">
+        <div class="upload-icon">🖼️</div>
+        <h2>Add Pictures</h2>
+        <p class="muted">Choose pictures from your device or drag them here.</p>
+        <label class="upload-button" for="fileInput">＋ Add Pictures</label>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+        <div class="status" id="status" role="status"></div>
+    </section>
+
+    <section class="panel">
+        <h2>🔐 Secret Vault</h2>
+        <p class="muted">Hide pictures from your main gallery and protect them with a passcode.</p>
+        <button type="button" id="openVault">🔒 Open Secret Vault</button>
+        <button type="button" id="changeCode" class="secondary">Change Passcode</button>
+    </section>
+
+    <section class="panel" id="vaultPanel">
+        <div class="vault-header">
+            <h2>🔐 My Secret Pictures</h2>
+            <button type="button" id="lockVault" class="danger">Lock Vault</button>
+        </div>
+
+        <div id="lockScreen" class="lock-screen">
+            <div class="lock-icon">🔒</div>
+            <h3>Vault Locked</h3>
+            <p class="muted">Enter your passcode to view hidden pictures.</p>
+            <form id="unlockForm">
+                <input id="unlockCode" type="password" placeholder="Enter passcode" required autocomplete="current-password">
+                <button type="submit">Unlock Pictures</button>
+            </form>
+            <div id="lockMessage" class="status" role="status"></div>
+        </div>
+
+        <div id="vaultContent" hidden>
+            <p class="muted">Your hidden pictures are shown below.</p>
+            <div class="gallery" id="secretGallery"></div>
+        </div>
+    </section>
+
+    <input type="search" id="search" placeholder="🔎 Search regular pictures..." aria-label="Search pictures">
+
+    <div class="toolbar">
+        <h2>My Gallery</h2>
+        <span id="count">0 pictures</span>
     </div>
-    <div id="overlayButtons"><button id="startBtn">▶ &nbsp; PLAY</button><button id="helpBtn">HOW TO PLAY</button></div>
-  </div>
+
+    <section class="gallery" id="gallery"></section>
+</main>
+
+<footer>Picture Vault · Stored in this browser on this device</footer>
+
+<div id="viewer" role="dialog" aria-label="Picture viewer">
+    <button type="button" id="closeViewer" aria-label="Close picture viewer">✕</button>
+    <img id="viewerImage" alt="Enlarged picture">
 </div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
 <script>
+"use strict";
+
+const DB_NAME = "PictureVaultDatabase";
+const STORE_NAME = "pictures";
+const CODE_KEY = "pictureVaultPasscodeHash";
+
+const gallery = document.getElementById("gallery");
+const secretGallery = document.getElementById("secretGallery");
+const fileInput = document.getElementById("fileInput");
+const search = document.getElementById("search");
+const count = document.getElementById("count");
+const status = document.getElementById("status");
+const vaultPanel = document.getElementById("vaultPanel");
+const lockScreen = document.getElementById("lockScreen");
+const vaultContent = document.getElementById("vaultContent");
+
+let db;
+let pictures = [];
+let vaultUnlocked = false;
+let viewerURL = null;
+let objectURLs = [];
+let busyIds = new Set();
+
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = () => {
+            const database = request.result;
+
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                database.createObjectStore(STORE_NAME, {
+                    keyPath: "id",
+                    autoIncrement: true
+                });
+            }
+        };
+
+        request.onsuccess = () => {
+            db = request.result;
+            db.onversionchange = () => db.close();
+            resolve();
+        };
+
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function readPictures() {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const request = tx.objectStore(STORE_NAME).getAll();
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function writePicture(picture) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).put(picture);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error("Could not save changes."));
+        tx.onabort = () => reject(tx.error || new Error("Save cancelled."));
+    });
+}
+
+function addPicture(picture) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).add(picture);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error("Could not add picture."));
+        tx.onabort = () => reject(tx.error || new Error("Add cancelled."));
+    });
+}
+
+function removePicture(id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).delete(id);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error("Could not delete picture."));
+        tx.onabort = () => reject(tx.error || new Error("Delete cancelled."));
+    });
+}
+
+function savedCodeHash() {
+    return localStorage.getItem(CODE_KEY);
+}
+
+async function hashCode(code) {
+    if (!crypto.subtle) {
+        throw new Error("Secure hashing is unavailable. Try a current version of Chrome.");
+    }
+
+    const bytes = new TextEncoder().encode(code);
+    const hash = await crypto.subtle.digest("SHA-256", bytes);
+
+    return Array.from(new Uint8Array(hash))
+        .map(byte => byte.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+function setStatus(message, error = false) {
+    status.textContent = message;
+    status.className = "status" + (error ? " error" : "");
+}
+
+function setLockMessage(message, error = false) {
+    const element = document.getElementById("lockMessage");
+    element.textContent = message;
+    element.className = "status" + (error ? " error" : "");
+}
+
+function cleanupURLs() {
+    objectURLs.forEach(url => URL.revokeObjectURL(url));
+    objectURLs = [];
+}
+
+function closeViewer() {
+    document.getElementById("viewer").classList.remove("open");
+
+    if (viewerURL) URL.revokeObjectURL(viewerURL);
+    viewerURL = null;
+    document.getElementById("viewerImage").src = "";
+}
+
+function showViewer(blob) {
+    closeViewer();
+    viewerURL = URL.createObjectURL(blob);
+    document.getElementById("viewerImage").src = viewerURL;
+    document.getElementById("viewer").classList.add("open");
+}
+
+document.getElementById("closeViewer").addEventListener("click", closeViewer);
+
+document.getElementById("viewer").addEventListener("click", event => {
+    if (event.target.id === "viewer") closeViewer();
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeViewer();
+});
+
+function makeEmpty(container, message, icon = "📷") {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+
+    const emoji = document.createElement("div");
+    emoji.textContent = icon;
+
+    const heading = document.createElement("h3");
+    heading.textContent = message;
+
+    empty.append(emoji, heading);
+    container.appendChild(empty);
+}
+
+function makeCard(picture, isSecret) {
+    const card = document.createElement("article");
+    card.className = "photo";
+
+    const image = document.createElement("img");
+    const url = URL.createObjectURL(picture.blob);
+    objectURLs.push(url);
+
+    image.src = url;
+    image.alt = picture.name;
+    image.loading = "lazy";
+    image.addEventListener("click", () => showViewer(picture.blob));
+
+    const info = document.createElement("div");
+    info.className = "photo-info";
+
+    const name = document.createElement("h3");
+    name.className = "photo-name";
+    name.textContent = picture.name;
+
+    const date = document.createElement("div");
+    date.className = "photo-date";
+    date.textContent = "Added " +
+        new Date(picture.createdAt).toLocaleDateString();
+
+    const actions = document.createElement("div");
+    actions.className = "photo-actions";
+
+    const download = document.createElement("button");
+    download.type = "button";
+    download.className = "secondary";
+    download.textContent = "⬇ Download";
+
+    download.addEventListener("click", () => {
+        const downloadURL = URL.createObjectURL(picture.blob);
+        const link = document.createElement("a");
+        link.href = downloadURL;
+        link.download = picture.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(downloadURL), 1500);
+    });
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = isSecret ? "green" : "secret";
+    toggle.textContent = isSecret ? "👁 Unhide" : "🔒 Hide";
+
+    toggle.addEventListener("click", async () => {
+        if (busyIds.has(picture.id)) return;
+
+        if (isSecret && !vaultUnlocked) {
+            alert("Unlock the Secret Vault first.");
+            return;
+        }
+
+        if (!isSecret && !savedCodeHash()) {
+            alert("Open the Secret Vault and create a passcode first.");
+            return;
+        }
+
+        busyIds.add(picture.id);
+        toggle.disabled = true;
+
+        try {
+            const updated = { ...picture, hidden: !isSecret };
+            await writePicture(updated);
+            await refreshGallery();
+
+            setStatus(isSecret
+                ? "Picture successfully unhidden!"
+                : "Picture successfully hidden!");
+        } catch (error) {
+            console.error(error);
+            setStatus("Hide/Unhide failed: " + error.message, true);
+        } finally {
+            busyIds.delete(picture.id);
+            toggle.disabled = false;
+        }
+    });
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "danger";
+    remove.textContent = "🗑 Delete";
+
+    remove.addEventListener("click", async () => {
+        if (busyIds.has(picture.id)) return;
+
+        if (!confirm('Permanently delete "' + picture.name + '"?')) return;
+
+        busyIds.add(picture.id);
+        remove.disabled = true;
+
+        try {
+            await removePicture(picture.id);
+            await refreshGallery();
+            setStatus("Picture successfully deleted!");
+        } catch (error) {
+            console.error(error);
+            setStatus("Delete failed: " + error.message, true);
+        } finally {
+            busyIds.delete(picture.id);
+            remove.disabled = false;
+        }
+    });
+
+    actions.append(download, toggle, remove);
+    info.append(name, date, actions);
+    card.append(image, info);
+
+    return card;
+}
+
+function renderGallery() {
+    cleanupURLs();
+
+    const query = search.value.trim().toLowerCase();
+
+    const regular = pictures.filter(picture =>
+        !picture.hidden && picture.name.toLowerCase().includes(query)
+    );
+
+    gallery.replaceChildren();
+
+    count.textContent =
+        `${regular.length} picture${regular.length === 1 ? "" : "s"}`;
+
+    if (!regular.length) {
+        makeEmpty(gallery,
+            query ? "No pictures match your search." : "Your gallery is empty.");
+    } else {
+        regular.forEach(picture => {
+            gallery.appendChild(makeCard(picture, false));
+        });
+    }
+
+    renderSecretGallery();
+}
+
+function renderSecretGallery() {
+    secretGallery.replaceChildren();
+
+    if (!vaultUnlocked) return;
+
+    const hidden = pictures.filter(picture => picture.hidden);
+
+    if (!hidden.length) {
+        makeEmpty(secretGallery, "No hidden pictures yet.", "🗝️");
+        return;
+    }
+
+    hidden.forEach(picture => {
+        secretGallery.appendChild(makeCard(picture, true));
+    });
+}
+
+async function refreshGallery() {
+    pictures = await readPictures();
+    pictures.sort((a, b) => b.createdAt - a.createdAt);
+    renderGallery();
+}
+
+async function addFiles(fileList) {
+    const files = Array.from(fileList).filter(file =>
+        file.type.startsWith("image/")
+    );
+
+    if (!files.length) {
+        setStatus("Please select image files.", true);
+        return;
+    }
+
+    let saved = 0;
+
+    setStatus("Saving pictures...");
+
+    for (const file of files) {
+        try {
+            await addPicture({
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                createdAt: Date.now(),
+                hidden: false,
+                blob: file
+            });
+            saved++;
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    await refreshGallery();
+    setStatus(`Saved ${saved} of ${files.length} picture(s).`);
+}
+
+fileInput.addEventListener("change", async () => {
+    await addFiles(fileInput.files);
+    fileInput.value = "";
+});
+
+search.addEventListener("input", renderGallery);
+
+const dropZone = document.getElementById("dropZone");
+
+dropZone.addEventListener("dragover", event => {
+    event.preventDefault();
+    dropZone.classList.add("dragging");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragging");
+});
+
+dropZone.addEventListener("drop", async event => {
+    event.preventDefault();
+    dropZone.classList.remove("dragging");
+    await addFiles(event.dataTransfer.files);
+});
+
+function showLockedVault() {
+    vaultUnlocked = false;
+    lockScreen.hidden = false;
+    vaultContent.hidden = true;
+    document.getElementById("unlockCode").value = "";
+    setLockMessage("");
+    renderSecretGallery();
+}
+
+function lockVault() {
+    showLockedVault();
+    vaultPanel.classList.remove("open");
+    document.getElementById("openVault").textContent =
+        "🔒 Open Secret Vault";
+}
+
+async function createCode() {
+    const code = prompt("Create a passcode (4–128 characters):");
+
+    if (code === null) return false;
+
+    if (code.length < 4 || code.length > 128) {
+        alert("Passcode must be between 4 and 128 characters.");
+        return false;
+    }
+
+    const confirmation = prompt("Enter the same passcode again:");
+
+    if (confirmation !== code) {
+        alert("Passcodes did not match.");
+        return false;
+    }
+
+    try {
+        localStorage.setItem(CODE_KEY, await hashCode(code));
+        alert("Your vault passcode has been saved!");
+        return true;
+    } catch (error) {
+        alert(error.message);
+        return false;
+    }
+}
+
+document.getElementById("openVault").addEventListener("click", async () => {
+    vaultPanel.classList.add("open");
+
+    if (!savedCodeHash()) {
+        const created = await createCode();
+
+        if (!created) {
+            vaultPanel.classList.remove("open");
+            return;
+        }
+    }
+
+    showLockedVault();
+
+    document.getElementById("openVault").textContent =
+        "🔒 Vault Is Locked";
+
+    vaultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("unlockCode").focus();
+});
+
+document.getElementById("unlockForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const input = document.getElementById("unlockCode");
+
+    try {
+        if (await hashCode(input.value) !== savedCodeHash()) {
+            setLockMessage("Incorrect passcode. Try again.", true);
+            input.value = "";
+            input.focus();
+            return;
+        }
+
+        vaultUnlocked = true;
+        lockScreen.hidden = true;
+        vaultContent.hidden = false;
+
+        document.getElementById("openVault").textContent =
+            "🔓 Vault Unlocked";
+
+        setLockMessage("");
+        renderSecretGallery();
+    } catch (error) {
+        setLockMessage(error.message, true);
+    }
+});
+
+document.getElementById("lockVault").addEventListener("click", lockVault);
+
+document.getElementById("changeCode").addEventListener("click", async () => {
+    if (!savedCodeHash()) {
+        await createCode();
+        return;
+    }
+
+    const current = prompt("Enter your current passcode:");
+    if (current === null) return;
+
+    try {
+        if (await hashCode(current) !== savedCodeHash()) {
+            alert("Incorrect current passcode.");
+            return;
+        }
+
+        await createCode();
+    } catch (error) {
+        alert(error.message);
+    }
+});
+
+async function startApp() {
+    try {
+        await openDatabase();
+        await refreshGallery();
+    } catch (error) {
+        console.error(error);
+        setStatus("Unable to open storage: " + error.message, true);
+    }
+}
+
+startApp();
+</script>
+</body>
+</html>
